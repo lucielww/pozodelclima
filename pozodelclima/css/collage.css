@@ -1,0 +1,155 @@
+/* Campo de fragmentos: materia dispersa, sin grilla. */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(198, 255, 74, 0.035), transparent 42%),
+    radial-gradient(ellipse at 84% 84%, rgba(255, 92, 53, 0.03), transparent 45%),
+    radial-gradient(ellipse at 50% 50%, #0c0d0a 0%, #060605 58%, #010101 100%);
+}
+
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 5px,
+      rgba(0, 0, 0, 0.26) 5px,
+      rgba(0, 0, 0, 0.26) 6px
+    ),
+    radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.stage__empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%);
+}
+
+.piece {
+  position: absolute;
+  top: var(--y);
+  left: var(--x);
+  width: var(--w);
+  height: var(--h);
+  margin: 0;
+  opacity: var(--opacity);
+  transform: rotate(var(--rot));
+  mix-blend-mode: var(--blend);
+  cursor: zoom-in;
+  animation: piece-drift var(--duration) ease-in-out var(--delay) infinite alternate;
+  will-change: translate;
+}
+
+.piece:focus-visible {
+  outline: none;
+}
+
+.piece:focus-visible .piece__frame {
+  outline: 2px solid var(--acid);
+  outline-offset: 5px;
+}
+
+.piece__frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  clip-path: var(--clip);
+  background: #0a0a08;
+  box-shadow:
+    0 0 0 1px hsla(var(--piece-hue), 40%, 60%, 0.14),
+    0 10px 60px hsla(var(--piece-hue), 55%, 35%, 0.18);
+}
+
+.piece__frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--tint);
+  mix-blend-mode: color;
+}
+
+.piece__frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.42;
+  mix-blend-mode: overlay;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.06) 0,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(var(--pixel) - 1px),
+      rgba(0, 0, 0, var(--pixel-alpha)) calc(var(--pixel) - 1px),
+      rgba(0, 0, 0, var(--pixel-alpha)) var(--pixel)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--pixel) - 1px),
+      rgba(0, 0, 0, var(--pixel-alpha)) calc(var(--pixel) - 1px),
+      rgba(0, 0, 0, var(--pixel-alpha)) var(--pixel)
+    ),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 42%, rgba(0, 0, 0, 0.24));
+}
+
+.piece__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter:
+    saturate(var(--sat))
+    contrast(var(--con))
+    brightness(var(--bright))
+    blur(var(--blur));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@keyframes piece-drift {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: var(--drift-x) var(--drift-y);
+  }
+}
+
+/* El debug no debe tapar la materia. */
+.stage[data-debug="1"] {
+  outline: 1px dashed rgba(198, 255, 74, 0.18);
+  outline-offset: -8px;
+}
+
+@media (max-width: 720px) {
+  .piece {
+    opacity: calc(var(--opacity) * 0.94);
+  }
+}

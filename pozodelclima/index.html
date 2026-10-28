@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070706">
+  <meta name="description" content="POZO DEL CLIMA. Obra colectiva de net art: una compostera de archivos que el clima elige sin mostrarse.">
+  <title>POZO DEL CLIMA</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/ui.css">
+  <link rel="stylesheet" href="css/collage.css">
+</head>
+<body>
+  <main id="stage" class="stage" tabindex="-1" aria-label="Campo de fragmentos de archivo" aria-hidden="true"></main>
+
+  <section id="entry" class="entry" aria-labelledby="entry-title">
+    <div class="entry__inner">
+      <p class="entry__kicker">obra colectiva / cc0</p>
+      <h1 id="entry-title" class="title" data-text="POZO DEL CLIMA">POZO DEL CLIMA</h1>
+      <p class="entry__tagline">Una compostera de archivos. El clima elige qué materia aparece, pero nunca se muestra.</p>
+      <div class="entry__actions">
+        <button id="enter" class="button button--primary" type="button">entrar</button>
+        <button class="button" type="button" data-about-open>acerca de</button>
+      </div>
+      <p id="entry-status" class="entry__status" role="status" aria-live="polite"></p>
+    </div>
+    <p class="entry__foot">sin autoría · donaciones anónimas · obra en dominio público</p>
+  </section>
+
+  <section id="location" class="location" role="dialog" aria-modal="true" aria-labelledby="location-title" aria-hidden="true" hidden>
+    <div class="location__panel">
+      <p class="location__kicker">ubicación</p>
+      <h2 id="location-title" class="location__title">¿de dónde mirás?</h2>
+      <p class="location__intro">La usamos una sola vez para elegir la materia. Tu ubicación no se guarda ni se muestra.</p>
+
+      <div class="location__actions">
+        <button id="location-share" class="button button--primary" type="button">usar mi ubicación</button>
+        <button id="location-city" class="button" type="button" aria-expanded="false" aria-controls="location-search-wrap">elegir ciudad</button>
+        <button id="location-skip" class="button" type="button">seguir sin ubicación (Buenos Aires)</button>
+      </div>
+
+      <div id="location-search-wrap" class="location__search" hidden>
+        <label class="location__label" for="location-query">buscar ciudad</label>
+        <div class="location__row">
+          <input id="location-query" class="location__input" type="search" autocomplete="off" spellcheck="false" placeholder="ciudad">
+          <button id="location-search" class="button" type="button">buscar</button>
+        </div>
+        <ul id="location-results" class="location__results"></ul>
+      </div>
+
+      <p id="location-status" class="location__status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section id="about" class="about" role="dialog" aria-modal="true" aria-labelledby="about-title" aria-hidden="true" hidden>
+    <div class="about__panel">
+      <button class="about__close" type="button" data-about-close aria-label="cerrar acerca de">×</button>
+      <p class="about__kicker">acerca de</p>
+      <h2 id="about-title" class="about__title">POZO DEL CLIMA</h2>
+      <div class="about__body">
+        <p>POZO DEL CLIMA es una obra colectiva. Hacemos un pozo de materia de archivo: imágenes y sonidos que se mezclan, se pudren y vuelven a formarse en cada visita.</p>
+        <p>El clima de quien entra no se muestra. Lo dejamos ser un curador invisible: elige qué fragmentos aparecen y con qué temperatura fermentan. No hay cielo, ni lluvia, ni pronóstico: solo su efecto sobre la materia.</p>
+        <p>Las piezas que se donan son anónimas y públicas: quedan bajo CC0. No firmamos, no acreditamos, no titulamos. La obra también es CC0.</p>
+      </div>
+    </div>
+  </section>
+
+  <noscript>
+    <p class="noscript">Esta obra necesita JavaScript para fermentar.</p>
+  </noscript>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
