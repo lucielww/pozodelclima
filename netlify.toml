@@ -1,0 +1,42 @@
+# Publicación estática: sin build, sin npm, sin servidor propio.
+# Netlify publica la raíz tal cual y detecta el formulario de contacto del HTML.
+
+[build]
+  publish = "."
+  command = ""
+
+# Cabeceras de seguridad. La CSP permite solo lo que la obra usa:
+# el módulo propio, el SDK fijado de jsDelivr, Supabase (REST, Storage y
+# firmas), Open-Meteo (clima y geocodificación) y el POST del formulario.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ajgwlejmyrlfsgniwzhe.supabase.co; media-src 'self' blob: https://ajgwlejmyrlfsgniwzhe.supabase.co; font-src 'self'; connect-src 'self' blob: https://ajgwlejmyrlfsgniwzhe.supabase.co wss://ajgwlejmyrlfsgniwzhe.supabase.co https://api.open-meteo.com https://geocoding-api.open-meteo.com https://cdn.jsdelivr.net; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self), camera=(), microphone=(), payment=(), usb=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+
+# El HTML se revalida siempre: la obra cambia sin build.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Los archivos de código y estilo se revalidan por ETag, sin versiones hash.
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+# El formulario de contacto debe procesarse como Netlify Forms.
+[[headers]]
+  for = "/contacto.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

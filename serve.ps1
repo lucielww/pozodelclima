@@ -59,6 +59,7 @@ while ($listener.IsListening) {
 
   $request = $context.Request
   $response = $context.Response
+  $isHead = $request.HttpMethod -eq 'HEAD'
 
   try {
     $relative = [Uri]::UnescapeDataString($request.Url.AbsolutePath)
@@ -84,14 +85,26 @@ while ($listener.IsListening) {
       $ext = [System.IO.Path]::GetExtension($full).ToLowerInvariant()
       $response.ContentType = if ($types.ContainsKey($ext)) { $types[$ext] } else { 'application/octet-stream' }
       $response.Headers.Add('Cache-Control', 'no-store')
+      # Mismas cabeceras que netlify.toml, sin upgrade-insecure-requests para
+      # poder probar la CSP en http://localhost.
+      $response.Headers.Add('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ajgwlejmyrlfsgniwzhe.supabase.co; media-src 'self' blob: https://ajgwlejmyrlfsgniwzhe.supabase.co; font-src 'self'; connect-src 'self' blob: https://ajgwlejmyrlfsgniwzhe.supabase.co wss://ajgwlejmyrlfsgniwzhe.supabase.co https://api.open-meteo.com https://geocoding-api.open-meteo.com https://cdn.jsdelivr.net; worker-src 'self' blob:; manifest-src 'self'")
+      $response.Headers.Add('X-Content-Type-Options', 'nosniff')
+      $response.Headers.Add('X-Frame-Options', 'DENY')
+      $response.Headers.Add('Referrer-Policy', 'strict-origin-when-cross-origin')
+      $response.Headers.Add('Permissions-Policy', 'geolocation=(self), camera=(), microphone=(), payment=(), usb=()')
+      $response.Headers.Add('Cross-Origin-Opener-Policy', 'same-origin')
       $response.ContentLength64 = $bytes.Length
-      $response.OutputStream.Write($bytes, 0, $bytes.Length)
+      if (-not $isHead) {
+        $response.OutputStream.Write($bytes, 0, $bytes.Length)
+      }
     } else {
       $response.StatusCode = 404
       $body = [System.Text.Encoding]::UTF8.GetBytes('404')
       $response.ContentType = 'text/plain; charset=utf-8'
       $response.ContentLength64 = $body.Length
-      $response.OutputStream.Write($body, 0, $body.Length)
+      if (-not $isHead) {
+        $response.OutputStream.Write($body, 0, $body.Length)
+      }
     }
   } catch {
     try { $response.StatusCode = 500 } catch {}

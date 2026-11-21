@@ -19,10 +19,10 @@ manda el plan. Acá solo se anota qué está hecho, cómo se verificó y qué si
    portada.
 4. Leer la sección «Siguiente paso» y ejecutar **solo** el paso indicado.
 
-No hace falta instalar nada para los Pasos 1 a 3. Para los Pasos 4 y 5 alcanza
-con un proyecto de Supabase configurado en `js/config.js`: no hay CLI, build ni
-npm. El mismo proyecto se usa para leer aprobadas y recibir donaciones (ver
-«Configuración externa pendiente»).
+No hace falta instalar nada para los Pasos 1 a 3. Para los Pasos 4 a 6 alcanza
+con un proyecto de Supabase configurado en `js/config.js` y, para el deploy, una
+cuenta de Netlify: no hay CLI, build ni npm. El mismo proyecto se usa para leer
+aprobadas y recibir donaciones (ver «Configuración externa pendiente»).
 
 ### Cómo servir localmente
 
@@ -383,24 +383,24 @@ nombre original ni los metadatos del archivo.
 
 ---
 
-## 7. Deuda conocida (candidata al Paso 6)
+## 7. Deuda conocida y límites
 
-- En móvil se ven 7 de 8 imágenes: el factor 0.6 queda limitado por el pool de
-  8 imágenes del seed. Se va a notar recién cuando haya donaciones aprobadas.
+- En móvil el campo muestra como máximo el 60 % del pool y al menos 4 piezas.
+  Con 8 imágenes del seed y 1 aprobada quedan 5; el 60 % crece cuando haya más
+  donaciones. Verificado con un viewport real de 390×844 en Chrome headless.
 - En móvil el campo tiende a agruparse arriba a la izquierda (solapamiento
-  máximo 0.77 con audio, justo en el umbral de relajación). Revisar dispersión.
-- `Esc` dentro del buscador de ciudad cierra todo el panel y entra con Buenos
-  Aires; sería mejor que el primer `Esc` limpie la búsqueda.
-- `composition/decay.js` calcula `driftX`/`driftY` que no se usan: el render
-  usa los de `layout.js`. Limpiar cuando se toque la fermentación.
-- `js/ui/location.js` registra listeners de `document` que no se dan de baja al
-  resolver. No molesta porque solo hay una entrada por visita; limpiar al
-  agregar la re-entrada o el botón de donación.
+  máximo 0.77 con audio, justo en el umbral de relajación). Revisar dispersión
+  con un pool más grande.
+- `js/ui/location.js` da de baja su listener de `document` al resolver y el
+  primer `Esc` limpia la búsqueda de ciudad; el segundo entra con Buenos Aires.
+  Verificado en vivo.
 - El seed de audio renderiza 3 archivos de 12 s al cargar (~1,2 s y ~3 MB de
-  WAV en memoria). Se genera junto con las imágenes antes de entrar; si molesta
-  en móvil, conviene renderizar solo 1–2 texturas o hacerlo perezoso.
-- Los `blob:` de audio no se revocan (`URL.revokeObjectURL`) para permitir
-  re-entradas futuras; revisar cuando exista re-entrada o donación.
+  WAV en memoria). Se genera junto con las imágenes antes de entrar; hay un
+  límite de 12 s para que un navegador sin salida de audio no bloquee la
+  portada. Si molesta en móvil, conviene renderizar solo 1–2 texturas o hacerlo
+  perezoso.
+- Los `blob:` de audio del seed se revocan al salir de la página (salvo que el
+  navegador la conserve en el historial).
 - Con solo 3 texturas, dos capas pueden ser casi la misma familia (drone +
   granos). La variedad real llega con los audios aprobados del Paso 4/5.
 - La pausa al ocultar la pestaña se verificó simulando `visibilitychange`; el
@@ -451,8 +451,8 @@ nombre original ni los metadatos del archivo.
   URLs no se purga: con muchas piezas conviene limitarlo o usar un Map por
   visita.
 - El SDK se carga por CDN con versión fijada, pero un `import()` dinámico no
-  permite `integrity`: si jsDelivr cambia o cae, se vuelve al seed. El CSP del
-  Paso 6 debe permitir ese origen.
+  permite `integrity`: si jsDelivr cambia o cae, se vuelve al seed. El CSP ya
+  permite ese origen.
 - El cliente descarta filas `pending`/`rejected` aunque la API las devuelva, pero
   RLS sigue siendo la defensa real: una URL firmada de un pendiente debe fallar
   igual. Revisar las políticas antes de publicar.
@@ -464,36 +464,101 @@ nombre original ni los metadatos del archivo.
   la próxima entrada.
 - El bucket todavía no acepta `video` aunque el schema reserve el tipo; se
   habilita en el Paso 7.
+- La CSP, las cabeceras y `netlify.toml` están escritos y se probaron en local
+  con `serve.ps1` (con `frame-ancestors 'self'` y sin
+  `upgrade-insecure-requests`), pero el deploy real en Netlify y el envío real
+  del formulario siguen pendientes.
+- La superposición del collage hace que Lighthouse marque `target-size` en
+  algunas composiciones (accesibilidad 0.96 en lugar de 100). Es intencional:
+  el fragmento visible de arriba recibe el toque y el teclado recorre todos los
+  fragmentos con un nombre ordinal. Corregirlo exigiría separar las piezas y
+  romper el lenguaje visual.
+- La QA final solo se completó en Chrome/Chromium (live y headless). Firefox,
+  Safari, iOS Safari y Android Chrome no están disponibles en este entorno: hay
+  que probar en dispositivos reales antes de publicar. Los filtros SVG
+  (`feTurbulence` + `feDisplacementMap`) y el grano a pantalla completa son los
+  puntos de mayor riesgo en Safari y en equipos de gama baja.
+- El glitch y la deriva se apagan con `prefers-reduced-motion`; se verificó con
+  `--force-prefers-reduced-motion` en Chrome headless (0 glitches, animación
+  `none`), no con la preferencia del sistema operativo de un dispositivo real.
+- El grano SVG de pantalla completa se oculta en móvil, pero falta medir su
+  costo real en un teléfono de gama baja; si molesta, bajarlo a un PNG repetido
+  o quitarlo.
+- La pieza aprobada de prueba ya no se puede borrar con anon. Queda visible en
+  el campo hasta que se limpie el proyecto en el dashboard.
 
 ---
 
-## 8. Siguiente paso: Paso 6 — pulido, rendimiento, accesibilidad y despliegue
+## 8. Paso 6 — pulido, rendimiento, accesibilidad y despliegue
 
-El **Paso 5 quedó implementado y verificado en vivo** el 20/11/2026 contra el
-proyecto `ajgwlejmyrlfsgniwzhe`: una imagen y un audio reales se procesaron,
-subieron y quedaron `pending`; los rechazos por tipo, tamaño, duración, duplicado
-y cuota funcionan; el comprobante y el registro local se guardan; las pendientes
-no se leen ni se firman con anon; la composición actual no cambia y la exclusión
-de IDs propios se comprobó con la pieza aprobada de prueba. El detalle está en la
-sección 4.
+El **Paso 6 quedó implementado y verificado en Chrome** el 20/11/2026. Falta
+desplegar en Netlify y completar la QA en navegadores/dispositivos reales.
 
-Queda una sola comprobación manual, que no bloquea el cierre: aprobar desde el
-dashboard una de las filas `pending` de prueba y verla aparecer en una nueva
-entrada. El mecanismo de aprobación ya se verificó en el Paso 4 y la exclusión
-del ID propio en este navegador ya se verificó en vivo. Si se prueba, conviene
-hacerlo con una fila descartable y borrarla después.
+Lo que se agregó:
 
-Antes de publicar hay que limpiar el proyecto:
+- `js/render/svg-filters.js`: filtros de fermentación con `feTurbulence` y
+  `feDisplacementMap`, más un grano SVG de pantalla completa. Se aplican a un
+  máximo de 5 piezas (3 en móvil), nunca a todas, y el grano se oculta en móvil.
+- `js/render/glitch.js`: franjas de glitch con la misma imagen como fondo
+  (sin clonar archivos), dos bandas por pieza, máximo 6 piezas y apagado total
+  con `prefers-reduced-motion`.
+- `js/composition/decay.js` y `js/render/gallery.js`: la fermentación ahora
+  decide tinte, pixelado, glitch, intensidad y duración; las piezas entran con
+  una transición de revelado escalonada.
+- `css/collage.css`, `css/ui.css`, `css/donate.css`, `css/base.css`: glitch,
+  grano, revelado, foco visible, controles simbólicos (`?`, `+`, `◍`/`◌`),
+  áreas seguras (`env(safe-area-inset-*)`), sin scroll, `overscroll-behavior` y
+  reglas de movimiento reducido.
+- `js/audio/engine.js`: mute persistente en `sessionStorage`, tope de 6 buffers
+  decodificados y pausa al ocultar la pestaña (ya existente).
+- `js/ui/location.js`: el listener de `document` se da de baja al resolver y el
+  primer `Esc` limpia la búsqueda de ciudad.
+- `js/main.js`: timeout de 12 s para el seed de audio, liberación de object URLs
+  al salir, controles del campo y arranque de los filtros SVG.
+- `contacto.html` + `js/contact.js`: el script inline pasó a un módulo propio
+  para que la CSP no necesite `unsafe-inline` en `script-src`.
+- `netlify.toml`: publicación de la raíz sin build, CSP, `X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy` y caché de HTML/CSS/JS.
+- `serve.ps1`: las mismas cabeceras en local (con `frame-ancestors 'self'` y sin
+  `upgrade-insecure-requests`) para poder probar la CSP sin deploy.
 
-- borrar las dos filas `pending` de prueba y sus objetos (sección 7);
-- borrar el objeto huérfano del duplicado;
-- borrar la imagen aprobada de prueba de 3024×4032.
+Verificación en vivo (Chrome, 20/11/2026):
 
-El **Paso 6 no está aprobado todavía**. Cuando se apruebe, el alcance está en
-`PLAN.md`: lenguaje visual final, filtros SVG, glitch, transiciones, móvil,
-movimiento reducido, rendimiento, `netlify.toml` con headers y CSP, y deploy en
-Netlify con la prueba real del formulario. El SDK ESM se sigue cargando por CDN
-con versión fijada; no hay build ni npm.
+- La portada entra, el campo se compone con 9 imágenes + 2 audios (o 9 piezas
+  sin audio si el navegador no renderiza el seed), sin overflow ni scroll.
+- 5 filtros SVG, 6 glitches y grano presentes; consola sin errores ni warnings.
+- `?` abre «acerca de» con foco atrapado, `Esc` cierra y devuelve el foco;
+  `+` abre el aviso de 7 puntos; la lente atrapa el foco y devuelve el foco;
+  los controles externos quedan `inert` mientras hay un diálogo.
+- El mute cambia a `◌`, guarda `pozo.muted=1` y sobrevive a una recarga.
+- Con `--force-prefers-reduced-motion`: `reduced:true`, 0 glitches, animación
+  `none`, la fermentación estática se conserva.
+- Viewport real de 390×844: 5 piezas (60 % del pool), sin overflow, título y
+  botones dentro del ancho, controles en las esquinas seguras.
+- La CSP local permite el SDK de jsDelivr, Supabase, Open-Meteo y el worker de
+  audio; no hay violaciones en consola.
+- Rendimiento: no hay bucle `requestAnimationFrame` ni canvas de pantalla
+  completa. Las animaciones son CSS y el navegador las detiene en segundo plano;
+  el audio se pausa con `visibilitychange`. El DPR no multiplica el costo porque
+  el seed se rasteriza una vez a 1000 px y se muestra como `<img>`, sin recrear
+  el canvas a `devicePixelRatio`.
+- Lighthouse: 100 en buenas prácticas y SEO en portada, contacto y overlay;
+  accesibilidad 100 en composiciones sin solapamiento y 0.96 cuando dos
+  fragmentos se superponen. `target-size` marca la superposición intencional
+  del collage; el fragmento visible de arriba es el que recibe el toque y el
+  teclado recorre todos con nombres ordinales («abrir fragmento 3 de 11»).
+  Se documenta como excepción esencial del lenguaje visual, no como fallo de
+  navegación.
+
+Antes de publicar:
+
+- desplegar en Netlify y probar el envío real del formulario de contacto;
+- completar la QA en Firefox, Safari, iOS Safari y Android Chrome;
+- borrar las filas, objetos y la imagen aprobada de prueba (sección 7);
+- revisar la CSP en el dominio final (el host de Supabase está fijado a mano).
+
+El Paso 6 no se considera cerrado hasta que el deploy y esa QA estén hechos.
 
 ---
 
@@ -507,11 +572,11 @@ con versión fijada; no hay build ni npm.
   `service_role` en el cliente. Si falta configuración o Supabase está pausado,
   la obra cae al seed y la donación avisa que no está disponible. Antes de
   publicar, borrar las filas y objetos de prueba (sección 7).
-- **Netlify (Paso 6)**: deploy estático desde la raíz, sin build.
-  `contacto.html` ya tiene el formulario de Netlify Forms con código, motivo,
-  mensaje, email opcional y honeypot; falta el deploy, la prueba real del envío
-  y el `netlify.toml` con headers y CSP. Las claves públicas viven en
-  `js/config.js`; no hay variables de entorno.
+- **Netlify (Paso 6)**: `netlify.toml` listo para publicar la raíz sin build,
+  con CSP y cabeceras de seguridad. `contacto.html` ya tiene el formulario de
+  Netlify Forms con código, motivo, mensaje, email opcional y honeypot. Falta
+  conectar el repositorio o subir la carpeta, hacer el deploy y probar el envío
+  real. Las claves públicas viven en `js/config.js`; no hay variables de entorno.
 - **Turnstile**: plan B documentado contra spam, no se implementa en la v1.
 
 ---
@@ -574,4 +639,20 @@ con versión fijada; no hay build ni npm.
   final opcional. Se vaciaron `pozo.donations` y `pozo.orphans` del navegador.
   Próximo: aprobar el Paso 6. Respaldo en
   `C:\Users\outlet\Downloads\pozodelclima-paso5-2026-11-20.zip`
+  (fuera de la carpeta del proyecto).
+- **2026-11-20** — Séptima sesión. El usuario aprobó el Paso 6. Se implementó el
+  lenguaje visual final (filtros SVG de fermentación, glitch por franjas,
+  grano, revelado escalonado y transición de portada), los controles simbólicos
+  accesibles, el mute persistente, el primer `Esc` en la búsqueda de ciudad, el
+  límite de audio del seed, la liberación de object URLs, `js/contact.js` para
+  evitar script inline y `netlify.toml` con CSP y cabeceras. Se probó en local
+  con la CSP activa: sin errores de consola, worker permitido, Open-Meteo real y
+  Supabase real. Lighthouse 100/100/100 en contacto y overlay; en el campo,
+  100 en buenas prácticas y SEO y 0.96 de accesibilidad cuando el collage
+  superpone dos fragmentos (`target-size`), con nombres ordinales por pieza.
+  Se verificó móvil real de 390×844 (5 piezas, sin overflow) y movimiento reducido
+  con Chrome headless (0 glitches, sin deriva). Queda pendiente el deploy en
+  Netlify, la prueba real del formulario y la QA en Firefox/Safari/iOS/Android;
+  también la limpieza de filas y objetos de prueba. Respaldo en
+  `C:\Users\outlet\Downloads\pozodelclima-paso6-2026-11-20.zip`
   (fuera de la carpeta del proyecto).
