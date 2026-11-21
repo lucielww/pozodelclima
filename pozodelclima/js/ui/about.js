@@ -28,13 +28,18 @@ export function initAbout() {
   function close() {
     if (overlay.hidden) return;
 
+    // Primero se devuelve el foco; después se oculta y se marca aria-hidden.
+    if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+      previousFocus.focus({ preventScroll: true });
+    }
+
+    if (overlay.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+
     overlay.hidden = true;
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('about-open');
-
-    if (previousFocus instanceof HTMLElement) {
-      previousFocus.focus({ preventScroll: true });
-    }
   }
 
   openers.forEach((button) => button.addEventListener('click', open));

@@ -69,23 +69,23 @@
     -2px 0 rgba(108, 243, 224, 0.35);
 }
 
-.title::before,
-.title::after {
-  content: attr(data-text);
+/* Capas de glitch: el mismo texto, superpuesto y aria-hidden. */
+.title__slice {
   position: absolute;
   inset: 0;
+  display: block;
   pointer-events: none;
   opacity: 0;
 }
 
-.title::before {
+.title__slice--a {
   color: var(--rust);
   transform: translateX(-0.03em);
   clip-path: inset(12% 0 62% 0);
   animation: title-slice-a 5.5s steps(1, end) infinite;
 }
 
-.title::after {
+.title__slice--b {
   color: var(--cyan);
   transform: translateX(0.03em);
   clip-path: inset(58% 0 18% 0);

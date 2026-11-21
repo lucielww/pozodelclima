@@ -33,13 +33,19 @@ export function initLens({ stage, getState }) {
   function close() {
     if (lens.hidden) return;
 
-    lens.hidden = true;
-    lens.setAttribute('aria-hidden', 'true');
+    // Primero se devuelve el foco; después se oculta y se marca aria-hidden.
     stage.inert = false;
 
-    if (lastFocus instanceof HTMLElement) {
+    if (lastFocus instanceof HTMLElement && lastFocus.isConnected) {
       lastFocus.focus({ preventScroll: true });
     }
+
+    if (lens.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+
+    lens.hidden = true;
+    lens.setAttribute('aria-hidden', 'true');
   }
 
   function open(pieceId) {

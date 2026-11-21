@@ -4,6 +4,8 @@ Obra de net art colectiva. Un campo de fragmentos de archivo —imágenes y audi
 
 Este documento es un plan de ejecución, no la implementación. Al aprobarlo se ejecuta **un solo paso** y se espera confirmación antes de seguir.
 
+El avance real, la verificación de cada paso y los pendientes se registran en `ESTADO.md`.
+
 ---
 
 ## 0. Decisiones congeladas

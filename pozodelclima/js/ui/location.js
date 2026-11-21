@@ -53,6 +53,12 @@ export function requestLocation() {
 
       done = true;
       if (controller) controller.abort();
+
+      // El foco no puede quedar dentro de un panel que se oculta.
+      if (overlay.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
+
       overlay.hidden = true;
       overlay.setAttribute('aria-hidden', 'true');
       query.value = '';
