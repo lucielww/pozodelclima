@@ -1,6 +1,6 @@
 # ESTADO — POZO DEL CLIMA
 
-Última actualización: **19 de noviembre de 2026**.
+Última actualización: **20 de noviembre de 2026**.
 
 Este archivo registra el avance real del proyecto para poder retomarlo en otra
 máquina o en otra sesión. El plan congelado es `PLAN.md`: si algo no coincide,
@@ -19,10 +19,10 @@ manda el plan. Acá solo se anota qué está hecho, cómo se verificó y qué si
    portada.
 4. Leer la sección «Siguiente paso» y ejecutar **solo** el paso indicado.
 
-No hace falta instalar nada para los Pasos 1 a 3. Para el Paso 4 alcanza con
-un proyecto de Supabase configurado en `js/config.js`: no hay CLI, build ni
-npm. El Paso 5 va a usar el mismo proyecto (ver «Configuración externa
-pendiente»).
+No hace falta instalar nada para los Pasos 1 a 3. Para los Pasos 4 y 5 alcanza
+con un proyecto de Supabase configurado en `js/config.js`: no hay CLI, build ni
+npm. El mismo proyecto se usa para leer aprobadas y recibir donaciones (ver
+«Configuración externa pendiente»).
 
 ### Cómo servir localmente
 
@@ -65,13 +65,13 @@ Mocks disponibles: `clear`, `cloud`, `rain`, `storm`, `fog`, `snow`, `night`,
 | 2 — Clima invisible, selección y dispersión | **Completado y verificado (18/11/2026)** |
 | 3 — Audio donado | **Completado y verificado (18/11/2026)** |
 | 4 — Supabase: lectura compartida | **Completado y verificado en vivo (19/11/2026)** |
-| 5 — Donación, análisis y aprobación | Pendiente |
+| 5 — Donación, análisis y aprobación | **Completado y verificado en vivo (20/11/2026)** |
 | 6 — Pulido, accesibilidad y despliegue | Pendiente |
 | 7 — Video | Opcional; no ejecutar sin aprobación |
 
 ---
 
-## 3. Qué está implementado (Pasos 1 a 4)
+## 3. Qué está implementado (Pasos 1 a 5)
 
 ### Flujo actual
 
@@ -86,6 +86,16 @@ abre una pieza sin reordenar nada; si es audio, suena sola.
 Las piezas compartidas usan URLs firmadas de una hora, cacheadas en memoria y
 renovadas antes de vencer. Si Supabase no está configurado, está pausado o
 falla, la obra sigue con el seed y el debug muestra el motivo.
+
+Al entrar aparece también un botón discreto de donación. Abre un overlay con el
+aviso de siete puntos, el checkbox obligatorio, la elección de archivo y el
+envío. La imagen se decodifica, se recompone a WebP de 1600 px y se analiza en
+el navegador; el audio se decodifica para validar duración y se analiza en un
+worker sin transcodificarlo. Después se calcula SHA-256, se aplica la cuota
+local de 3 donaciones por 24 h, se sube el blob a `pozo` y se inserta la fila
+`pending`. El comprobante muestra solo el ID. La donación no toca la
+composición en curso: si se aprueba, puede aparecer en una próxima entrada y el
+ID propio la filtra en este navegador.
 
 ### Archivos y responsabilidades
 
@@ -105,6 +115,8 @@ js/seed/audio.js           3 texturas de audio de 12 s renderizadas offline
 js/analysis/color.js       Media HSL, brillo, saturación, k-means 3–5 colores
 js/analysis/fft.js         FFT radix-2, ventana de Hann, magnitudes
 js/analysis/audio.js       RMS, centroide, planitud, ZCR y envolvente
+js/analysis/audio-worker.js  Features de audio fuera del hilo principal
+js/analysis/file.js        Firma binaria, recompresión WebP, decodificación, worker
 
 js/weather/open-meteo.js   Forecast + geocoding, timeout, redondeo a 2 dec.
 js/weather/profile.js      WMO → estado interno → perfil (hue, densidad, etc.)
@@ -113,7 +125,10 @@ js/audio/engine.js         Buffers en loop, fades, filtro, crush, paneo, mute
 
 js/supabase/client.js      Cliente perezoso; SDK ESM por CDN con versión fija
 js/supabase/pieces.js      Aprobadas, firmas en lote, caché, renovación y merge
-js/storage/local.js        Registro local de donaciones propias (stub)
+js/storage/local.js        Donaciones propias, cuota móvil de 24 h y huérfanas
+
+js/upload/process.js       Validación, análisis, hash y rechazo de duplicados
+js/upload/donate.js        Subida a Storage, insert `pending` y comprobante
 
 js/composition/select.js   Selección 80/20 de imágenes y 1–2 audios afines
 js/composition/layout.js   Dispersión hue→ángulo, brillo→radio, relajación
@@ -125,7 +140,12 @@ js/ui/entry.js             Entrada, desbloqueo de audio y estados de carga
 js/ui/about.js             Overlay «acerca de» accesible
 js/ui/location.js          Geolocalización, búsqueda de ciudad, default
 js/ui/lens.js              Lente de imagen y de audio (click/Enter, Esc, foco)
+js/ui/donate.js            Overlay de donación, cuota, envío y comprobante
+js/ui/notice.js            Aviso de siete puntos y nota de metadatos
 js/ui/debug.js             Panel de `?debug=1`
+
+contacto.html              Netlify Form de contacto y bajas (con honeypot)
+css/donate.css             Overlay de donación y página de contacto
 
 LICENSE                    CC0 1.0
 PLAN.md                    Plan congelado por pasos
@@ -136,13 +156,14 @@ supabase/schema.sql        Tabla `pieces`, checks, índices, RLS y trigger
 supabase/storage.sql       Bucket privado `pozo`, firmas y políticas
 ```
 
-Todavía no existen: `js/upload/`, `js/ui/donate.js`, `js/ui/notice.js`,
-`js/analysis/file.js`, `js/analysis/audio-worker.js`, `contacto.html`,
-`css/donate.css`, `netlify.toml`. Corresponden a los Pasos 5 y 6.
+Todavía no existe `netlify.toml` (headers, CSP y configuración del deploy):
+corresponde al Paso 6.
 
 ---
 
-## 4. Verificación hecha el 18/11/2026
+## 4. Verificación en navegador
+
+### Pasos 1 a 4 (18 y 19/11/2026)
 
 Navegador: Chromium del entorno de desarrollo, servidor estático local.
 
@@ -194,14 +215,44 @@ Las pruebas de red se hicieron primero con `window.fetch` interceptado
 forzar la renovación. El **19/11/2026** se conectó el proyecto real y se repitió
 la verificación contra Supabase: la pieza aprobada se firma y se renderiza, las
 filas no aprobadas no se leen, la anon key no puede actualizar ni borrar y la
-renovación de URLs funciona. Queda pendiente, para el Paso 5, probar con un
-objeto `pending` real (hoy se verificó con la función de política y una ruta no
-aprobada) y el borrado de Storage sin destruir la pieza de prueba.
+renovación de URLs funciona. Las dos comprobaciones que quedaban para el Paso 5
+(objeto `pending` real y borrado de Storage) se completaron con las donaciones
+de prueba: ver «Paso 5» más abajo.
 
 No se pudo automatizar el caso «permiso de geolocalización **concedido**»
 (el navegador de prueba no concede el permiso). Sí se verificó el flujo
 denegado y el de búsqueda de ciudad con clima real. Conviene probar el caso
 concedido a mano en Chrome/Safari/iOS.
+
+### Paso 5 (20/11/2026)
+
+Navegador: Chromium del entorno de desarrollo, servidor estático local y el
+proyecto real `ajgwlejmyrlfsgniwzhe`.
+
+| Prueba | Resultado |
+|---|---|
+| Checkbox sin aceptar | El botón de envío queda deshabilitado; al aceptar, se habilita |
+| Imagen válida (PNG 1200×800 de 188.039 B) | WebP 1200×800 de 14.934 B; análisis k-means; SHA-256 `8421ff4d…`; `POST pieces` 201; comprobante; registro local; cuota 1/3 |
+| Audio válido (WAV 3 s, 258 KB) | Subido byte a byte; features en worker (RMS 0,259; centroide 445,4 Hz; planitud 0,0006); `POST pieces` 201; comprobante; cuota 2/3 |
+| Archivo `.txt` | «Ese formato no se puede donar…»; sin subida ni fila |
+| PNG de 8 MB + 1 KB | «El archivo supera el límite…»; sin subida |
+| WAV de 95 s | «El audio dura más de 90 segundos.»; sin subida |
+| Duplicado exacto del audio | El servidor responde 409 (`23505`); «Ese archivo ya está en el pozo.»; sin segunda fila; queda un objeto huérfano registrado |
+| Cuota sembrada en 3/3 | Entrada bloqueada, archivo y checkbox deshabilitados, mensaje claro; al borrar `localStorage` vuelve a 0/3 |
+| Comprobante | ID visible y copiable; no aparece el nombre del archivo |
+| Nombre del archivo | No está en el texto visible; el input mide ≤1 px y el resumen solo muestra el tamaño |
+| Composición actual | Mismos IDs seleccionados antes y después de abrir y cerrar el overlay |
+| Exclusión de propias | Marcando la imagen aprobada como propia, `approvedPieces` queda vacío, el pool no la contiene y debug muestra `propias 3` |
+| Pendientes con la anon key | `select` de `pending` devuelve `[]`; firmar el objeto pendiente real devuelve 404; borrar con anon devuelve 403 |
+| Contacto | Código, motivo, mensaje, email opcional y honeypot; en local avisa que no envía nada y no manda consultas |
+| Lighthouse | Portada, contacto y overlay de donación: accesibilidad, buenas prácticas y SEO 100 |
+| Consola | Sin errores de JavaScript; el único error de red es el 409 esperado de la prueba de duplicado |
+| Aprobación manual | Pendiente de una acción en el dashboard: el flujo de lectura de aprobadas y la exclusión del ID propio ya están verificados en vivo |
+
+Evidencia de las filas creadas: el `POST` a `rest/v1/pieces` devolvió 201 para
+la imagen y para el audio, con `status: "pending"` y el `sha256` calculado en el
+navegador. La anon key no puede leerlas, así que su contenido solo se comprueba
+en el dashboard.
 
 ---
 
@@ -259,8 +310,8 @@ concedido a mano en Chrome/Safari/iOS.
     lote (1 h), las cachea en memoria, renueva antes de vencer (cada 5 min y al
     volver a la pestaña) y normaliza las features de la base. También une seed +
     aprobadas, descarta duplicados y excluye los IDs propios.
-  - `js/storage/local.js`: stub del registro `pozo.donations`; por ahora solo
-    expone los IDs propios para la exclusión del Paso 5.
+  - `js/storage/local.js`: registro `pozo.donations` y exclusión de los IDs
+    propios (el Paso 5 lo completó con cuota y huérfanas).
   - `js/config.js`, `js/main.js`, `js/state.js` y `js/ui/debug.js`: configuración
     del proyecto, carga en paralelo con el seed, merge antes de seleccionar,
     estado remoto y líneas de debug (estado, aprobadas, URLs, SDK, propias).
@@ -269,13 +320,47 @@ concedido a mano en Chrome/Safari/iOS.
   - Verificación simulada: consulta y firmas con `fetch` interceptado, caché de
     URLs, renovación con reloj adelantado, timeout de 5 s, merge con IDs propios,
     render de una imagen remota y de una waveform. Los 8 mocks siguen igual y
-    sin errores de consola. **Falta la prueba contra un proyecto real.**
-- `ESTADO.md`: actualización de esta bitácora.
+    sin errores de consola. La prueba contra el proyecto real llegó el 19/11
+    (fila de arriba).
+- **Paso 5 — donación, análisis y aprobación:**
+  - `js/analysis/file.js` y `js/analysis/audio-worker.js`: firma binaria de
+    JPEG/PNG/WebP/MP3/OGG/WAV/M4A (no por extensión), decodificación con
+    `createImageBitmap` y orientación EXIF, recompresión a WebP de 1600 px al
+    0,82 sobre fondo de materia, análisis de color y features de audio en un
+    worker con los canales transferidos. Si el worker falla, cae al hilo
+    principal; el audio no se transcodifica.
+  - `js/upload/process.js`: límites de 8 MB y 12 MB, 80 megapíxeles, 90 s de
+    audio, timeouts, SHA-256 con `crypto.subtle` y rechazo temprano de hashes
+    aprobados. Los mensajes son claros y no incluyen el nombre del archivo.
+  - `js/upload/donate.js`: genera el UUID en el navegador, sube el blob a
+    `pozo` con `upsert: false`, inserta la fila `pending` **sin** `.select()`
+    (anon no puede leerla) y guarda `{ id, path, at }`. Si falla el insert,
+    registra la ruta en `pozo.orphans` para limpieza manual; el 409 del
+    duplicado se traduce a un mensaje específico.
+  - `js/storage/local.js`: registro de donaciones, cuota móvil de 3 por 24 h y
+    lista de huérfanas; tolera `localStorage` roto o lleno sin romper el flujo.
+  - `js/ui/donate.js` y `js/ui/notice.js`: overlay con aviso de siete puntos,
+    nota de metadatos, checkbox obligatorio, estado `aria-live`, trampa de foco,
+    cierre con Esc, comprobante copiable y enlace a la página de contacto. El
+    botón recién aparece al entrar, para no competir con la portada.
+  - `js/supabase/pieces.js`: `getApprovedHashes()` expone los hashes de las
+    aprobadas cargadas en la visita para el rechazo temprano.
+  - `js/config.js`, `js/main.js`, `js/state.js` y `js/ui/debug.js`: límites de
+    donación, inicialización del overlay, estado de la donación, cuota, hash,
+    ID y huérfanas en el panel de debug. La donación no dispara `paint()` ni
+    toca `state.selected`.
+  - `contacto.html` y `css/donate.css`: formulario de Netlify con código,
+    motivo, mensaje, email opcional y honeypot; en local muestra el aviso y no
+    envía nada. La página comparte la estética del pozo.
+  - Sin errores de aplicación detectados en la verificación. El único incidente
+    fue un script de prueba mal formado en la consola del navegador, ajeno al
+    código de la obra.
 
 El clima sigue siendo invisible: el audio no muestra nombres ni estados, solo
 materia sonora. No hay sonidos de lluvia, viento ni truenos. Las piezas
 compartidas tampoco muestran autor, título, nombre de archivo ni metadatos: solo
-entran al pozo si están aprobadas.
+entran al pozo si están aprobadas. El flujo de donación tampoco muestra el
+nombre original ni los metadatos del archivo.
 
 ---
 
@@ -286,6 +371,11 @@ entran al pozo si están aprobadas.
   visibles.
 - La composición se genera una vez por entrada y queda fija durante la visita.
   No hay «revolver», polling ni recomposición a mitad de visita.
+- Una donación nunca altera la composición actual. Solo puede entrar en una
+  próxima visita, después de la aprobación manual.
+- Las piezas propias guardadas en `pozo.donations` se excluyen de la selección.
+- El comprobante es el único identificador de una donación: no hay nombre,
+  autoría, título ni metadatos visibles.
 - Si el clima o la red fallan, la obra sigue funcionando (perfil neutro, seed).
 - Sin scroll: portada y campo ocupan el viewport.
 - Licencia CC0 para obra, donaciones y código.
@@ -322,22 +412,41 @@ entran al pozo si están aprobadas.
   dispositivo real.
 - El analizador del motor se usa para el nivel de debug; todavía no modula la
   visualización (el orbe es CSS).
-- **Paso 4 verificado en vivo, con dos pruebas pendientes:** falta subir un
-  objeto `pending` real para confirmar que su URL firmada falla (la función de
-  política y una ruta no aprobada ya lo hacen) y probar el borrado de Storage sin
-  destruir la pieza de prueba. El listado de Storage sí muestra los nombres de
-  los objetos aprobados: son públicos por diseño, pero conviene tenerlo presente.
+- Las dos pruebas opcionales del Paso 4 quedaron cerradas con la donación real:
+  firmar un objeto `pending` devuelve 404 y borrar con anon devuelve 403. El
+  listado de Storage muestra solo los objetos aprobados: sus nombres son
+  públicos por diseño, pero conviene tenerlo presente.
 - El proyecto de prueba tiene una imagen aprobada de 3024×4032. Borrarla desde
   el dashboard antes de publicar si no debe quedar en la obra.
-- Paso 5: al insertar una donación no conviene pedir representación
-  (`.select()`); la fila nace `pending` y anon solo puede leer aprobadas. Usar
-  el UUID generado en el navegador.
+- Quedan en Supabase dos filas `pending` de prueba creadas el 20/11/2026:
+  `64d3e2b5-194b-476e-b728-e4d9a805c279` (imagen WebP de 14.934 B) y
+  `569b872f-6faf-4fdd-b1ee-8d31b39acd1b` (audio WAV de 264.644 B). Borrarlas
+  junto con sus objetos de Storage antes de publicar. También queda el objeto
+  huérfano `c196408a-4776-41cc-b2f3-5a4f40a75614.wav`, subido por la prueba de
+  duplicado: no tiene fila y anon no puede borrarlo. Después de verificar se
+  vaciaron `pozo.donations` y `pozo.orphans` en el navegador de prueba.
+- El duplicado se detecta contra los hashes aprobados. Si el archivo repetido
+  todavía está `pending`, el rechazo llega por el índice único del servidor
+  (409) después de subir el objeto: queda huérfano y se limpia a mano. Se acepta
+  por ahora (riesgo previsto en el plan); si molesta, guardar también los hashes
+  de las donaciones locales.
+- El navegador registra un error de red 409 en consola al probar un duplicado.
+  Es el log del request rechazado, no una excepción de la aplicación.
+- La cuota es local y evitable con incógnito o borrando `localStorage`; está
+  aceptado y documentado. El servidor no limita por visitante.
+- Los audios se suben sin transcodificar: pueden conservar metadatos. El aviso
+  lo dice y no se promete limpieza. Las imágenes pierden EXIF y GPS al
+  recomprimirse a WebP.
+- La aprobación manual de una fila `pending` generada por el flujo nuevo sigue
+  pendiente de una prueba en el dashboard. El camino de lectura de aprobadas y
+  la exclusión del ID propio ya se verificaron en vivo.
 - La lectura compartida se espera antes de entrar (timeout de 5 s). Si Supabase
   está pausado, la portada puede tardar ese tiempo de más. Si molesta, mover la
   consulta a un segundo plano y componer solo con lo que llegó.
 - Las features de una fila pueden venir vacías si el admin inserta una prueba a
-  mano. La pieza igual aparece, pero con perfil neutro y sin waveform hasta que
-  el Paso 5 las calcule. Conviene completarlas al aprobar.
+  mano. La pieza igual aparece, pero con perfil neutro y sin waveform: el flujo
+  de donación ya las calcula, pero una fila manual no. Conviene completarlas al
+  aprobar.
 - Se piden como máximo 60 aprobadas y se firman en lotes de 100. El caché de
   URLs no se purga: con muchas piezas conviene limitarlo o usar un Map por
   visita.
@@ -358,39 +467,50 @@ entran al pozo si están aprobadas.
 
 ---
 
-## 8. Siguiente paso: Paso 5 — donación, análisis y aprobación
+## 8. Siguiente paso: Paso 6 — pulido, rendimiento, accesibilidad y despliegue
 
-El **Paso 4 quedó cerrado y verificado en vivo** el 19/11/2026 contra el proyecto
-`ajgwlejmyrlfsgniwzhe`: el SQL se ejecutó, el bucket `pozo` es privado y
-`js/config.js` ya tiene la URL y la clave pública (`sb_publishable_…`). La pieza
-aprobada de prueba se firma, se descarga y se compone; las filas no aprobadas no
-se leen; `update` y `delete` con anon fallan; la renovación de URLs funciona.
+El **Paso 5 quedó implementado y verificado en vivo** el 20/11/2026 contra el
+proyecto `ajgwlejmyrlfsgniwzhe`: una imagen y un audio reales se procesaron,
+subieron y quedaron `pending`; los rechazos por tipo, tamaño, duración, duplicado
+y cuota funcionan; el comprobante y el registro local se guardan; las pendientes
+no se leen ni se firman con anon; la composición actual no cambia y la exclusión
+de IDs propios se comprobó con la pieza aprobada de prueba. El detalle está en la
+sección 4.
 
-Quedaron dos comprobaciones opcionales que el Paso 5 va a cubrir de forma
-natural, porque crea objetos y filas `pending`:
+Queda una sola comprobación manual, que no bloquea el cierre: aprobar desde el
+dashboard una de las filas `pending` de prueba y verla aparecer en una nueva
+entrada. El mecanismo de aprobación ya se verificó en el Paso 4 y la exclusión
+del ID propio en este navegador ya se verificó en vivo. Si se prueba, conviene
+hacerlo con una fila descartable y borrarla después.
 
-- firmar la URL de un objeto pendiente real y comprobar que falla;
-- intentar borrar un objeto de Storage con anon sin destruir la pieza aprobada.
+Antes de publicar hay que limpiar el proyecto:
 
-El **Paso 5 no está aprobado todavía**. Cuando se apruebe, el alcance está en
-`PLAN.md` (subida, análisis en el navegador, fila pendiente, aviso y
-aprobación). El SDK ESM se sigue cargando por CDN con versión fijada; no hay
-build ni npm.
+- borrar las dos filas `pending` de prueba y sus objetos (sección 7);
+- borrar el objeto huérfano del duplicado;
+- borrar la imagen aprobada de prueba de 3024×4032.
 
-Antes de publicar, borrar la imagen de prueba de 3024×4032 desde el dashboard.
+El **Paso 6 no está aprobado todavía**. Cuando se apruebe, el alcance está en
+`PLAN.md`: lenguaje visual final, filtros SVG, glitch, transiciones, móvil,
+movimiento reducido, rendimiento, `netlify.toml` con headers y CSP, y deploy en
+Netlify con la prueba real del formulario. El SDK ESM se sigue cargando por CDN
+con versión fijada; no hay build ni npm.
 
 ---
 
 ## 9. Configuración externa pendiente
 
 - **Open-Meteo**: ya en uso, sin clave. No se guardan coordenadas.
-- **Supabase (Paso 4)**: proyecto `ajgwlejmyrlfsgniwzhe` en uso, con
+- **Supabase (Pasos 4 y 5)**: proyecto `ajgwlejmyrlfsgniwzhe` en uso, con
   `supabase/schema.sql` y `supabase/storage.sql` ejecutados y la URL + clave
-  pública en `js/config.js`. Bucket privado `pozo` (12 MB). Nunca `service_role`
-  en el cliente. Si falta configuración o Supabase está pausado, la obra cae al
-  seed. Antes de publicar, borrar la imagen de prueba aprobada.
+  pública en `js/config.js`. Bucket privado `pozo` (12 MB) con subida anónima
+  `uuid.ext`, lectura solo de aprobadas y sin update/delete para anon. Nunca
+  `service_role` en el cliente. Si falta configuración o Supabase está pausado,
+  la obra cae al seed y la donación avisa que no está disponible. Antes de
+  publicar, borrar las filas y objetos de prueba (sección 7).
 - **Netlify (Paso 6)**: deploy estático desde la raíz, sin build.
-  `contacto.html` con Netlify Forms. Las claves públicas viven en
+  `contacto.html` ya tiene el formulario de Netlify Forms con código, motivo,
+  mensaje, email opcional y honeypot; falta el deploy, la prueba real del envío
+  y el `netlify.toml` con headers y CSP. Las claves públicas viven en
   `js/config.js`; no hay variables de entorno.
 - **Turnstile**: plan B documentado contra spam, no se implementa en la v1.
 
@@ -439,3 +559,19 @@ Antes de publicar, borrar la imagen de prueba de 3024×4032 desde el dashboard.
   para el Paso 5. El Paso 4 queda cerrado; el Paso 5 sigue pendiente de
   aprobación. Respaldo verificado en
   `C:\Users\outlet\Downloads\pozodelclima-paso4-2026-11-19.zip`.
+- **2026-11-19/20** — Sexta sesión. El usuario aprobó el Paso 5. Se implementó el
+  flujo completo de donación (detección por contenido, recompresión WebP,
+  features de audio en worker, SHA-256, cuota, subida, fila `pending`,
+  comprobante, exclusión de propias y página de contacto) y se verificó en vivo
+  contra Supabase con una imagen y un audio reales: ambos `POST` devolvieron 201
+  y quedaron pendientes; se probaron los rechazos por tipo, tamaño, duración,
+  duplicado y cuota; la anon key no pudo leer, firmar ni borrar los pendientes;
+  el nombre del archivo no aparece; la composición no cambió; la exclusión del
+  ID propio se comprobó con la imagen aprobada de prueba; Lighthouse dio
+  100/100/100 en portada, contacto y overlay. No se detectaron errores de la
+  aplicación. Quedan en Supabase las filas y objetos de prueba para borrar
+  (sección 7) y la aprobación manual de una fila `pending` como comprobación
+  final opcional. Se vaciaron `pozo.donations` y `pozo.orphans` del navegador.
+  Próximo: aprobar el Paso 6. Respaldo en
+  `C:\Users\outlet\Downloads\pozodelclima-paso5-2026-11-20.zip`
+  (fuera de la carpeta del proyecto).

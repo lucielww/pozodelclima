@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070706">
+  <meta name="description" content="Contacto de POZO DEL CLIMA: pedidos de baja y consultas sobre donaciones anónimas.">
+  <title>contacto · POZO DEL CLIMA</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/donate.css">
+</head>
+<body class="contact-page">
+  <main class="contact" aria-labelledby="contact-title">
+    <div class="contact__panel">
+      <p class="contact__kicker">contacto / bajas</p>
+      <h1 id="contact-title" class="contact__title">escribinos</h1>
+      <p class="contact__intro">Si donaste un archivo por error o querés pedir una baja, guardá el comprobante y escribinos con el código. No publicamos nombres, autores ni títulos: el código es la única forma de ubicar una donación.</p>
+
+      <form id="contact-form" class="contact__form" name="contacto" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="contacto">
+        <p class="contact__honeypot" aria-hidden="true">
+          <label>no completar <input name="bot-field" tabindex="-1" autocomplete="off"></label>
+        </p>
+
+        <div class="contact__field">
+          <label class="contact__label" for="contact-code">código de donación</label>
+          <input id="contact-code" class="contact__input" type="text" name="codigo" autocomplete="off" spellcheck="false" placeholder="el id del comprobante">
+          <p class="contact__hint">Si es por una baja, es el código que apareció al terminar la donación. Si no lo tenés, contanos qué pasó.</p>
+        </div>
+
+        <div class="contact__field">
+          <label class="contact__label" for="contact-reason">motivo</label>
+          <select id="contact-reason" class="contact__select" name="motivo" required>
+            <option value="baja">pedir una baja</option>
+            <option value="error">error en una donación</option>
+            <option value="obra">consulta sobre la obra</option>
+            <option value="otro">otro</option>
+          </select>
+        </div>
+
+        <div class="contact__field">
+          <label class="contact__label" for="contact-message">mensaje</label>
+          <textarea id="contact-message" class="contact__textarea" name="mensaje" required minlength="10" maxlength="2000" placeholder="qué pasó y qué necesitás"></textarea>
+        </div>
+
+        <div class="contact__field">
+          <label class="contact__label" for="contact-email">email (opcional)</label>
+          <input id="contact-email" class="contact__input" type="email" name="email" autocomplete="email" placeholder="solo si querés una respuesta">
+        </div>
+
+        <div class="contact__actions">
+          <button class="button button--primary" type="submit">enviar mensaje</button>
+          <a class="button" href="index.html">volver al pozo</a>
+        </div>
+
+        <p id="contact-status" class="contact__status" role="status" aria-live="polite"></p>
+      </form>
+
+      <p class="contact__back"><a href="index.html">POZO DEL CLIMA</a> · obra colectiva / cc0</p>
+    </div>
+  </main>
+
+  <noscript>
+    <p class="noscript">Sin JavaScript el formulario se envía igual, pero no muestra la confirmación en la página.</p>
+  </noscript>
+
+  <script type="module">
+    const form = document.querySelector('#contact-form');
+    const status = document.querySelector('#contact-status');
+    const localHosts = new Set(['localhost', '127.0.0.1', '::1', '']);
+
+    function setStatus(text, tone = '') {
+      status.textContent = text;
+      if (tone) status.dataset.tone = tone;
+      else delete status.dataset.tone;
+    }
+
+    function isLocal() {
+      return location.protocol === 'file:'
+        || localHosts.has(location.hostname)
+        || location.port === '8000';
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (isLocal()) {
+        setStatus('El formulario funciona en el deploy de Netlify. En local no se envía nada: así evitamos mandar consultas de prueba.', 'error');
+        return;
+      }
+
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      setStatus('enviando…');
+
+      try {
+        const body = new URLSearchParams(new FormData(form)).toString();
+        const response = await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        form.reset();
+        setStatus('mensaje enviado. Si pediste una baja, te respondemos al email que hayas dejado.', 'ok');
+      } catch (error) {
+        setStatus('No pudimos enviar el mensaje. Probá de nuevo en un rato.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
